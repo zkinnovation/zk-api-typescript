@@ -7,7 +7,7 @@ import transactionRoutes from "./routes/transactionRoutes";
 //app setup
 const app = express();
 const port = process.env.PORT || 8001;
-const connection_url = "mongodb+srv://appskans2017:4lClNQBRdSiUsBQI@cluster0.oacodo4.mongodb.net/zkapidb?retryWrites=true&w=majority";
+const connection_url = "mongodb+srv://<password>:4lClNQBRdSiUsBQI@cluster0.oacodo4.mongodb.net/zkapidb?retryWrites=true&w=majority";
 
 // middleware 
 app.use(express.json());
