@@ -334,6 +334,9 @@ const createTxn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { safeAddress, transactionType, requiredThreshold, userAddress, txnAmount, recipientAddress } = req.body;
         const account = yield model_1.Account.findOne({ accountAddress: safeAddress }).exec();
+        if (requiredThreshold > account.setThreshold) {
+            return res.status(404).json({ message: "The set threshold is greater than the already set threshold for this zkwallet" });
+        }
         if (!account) {
             return res.status(404).json({ message: "Account not found" });
         }
@@ -367,7 +370,13 @@ const getTxnsBySafeAddress = (req, res) => __awaiter(void 0, void 0, void 0, fun
         if (!account) {
             return res.status(404).json({ message: "Account not found" });
         }
-        res.status(200).json({ transactions: account.transactions });
+        let transactions = [];
+        for (let i = 0; i < account.transactions.length; i++) {
+            const txnId = account.transactions[i]._id;
+            const txn = yield model_1.Transaction.findById(txnId);
+            transactions.push(txn);
+        }
+        res.status(200).json({ transactions: transactions });
     }
     catch (error) {
         console.log(error);
@@ -377,12 +386,12 @@ const getTxnsBySafeAddress = (req, res) => __awaiter(void 0, void 0, void 0, fun
 exports.getTxnsBySafeAddress = getTxnsBySafeAddress;
 const getSignedTxnHash = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { safeAddress } = req.body;
+        const { safeAddress, amount, recipientAddress } = req.body;
         const provider = new ethers_1.ethers.providers.JsonRpcProvider("https://zksync2-testnet.zksync.dev");
         const erc20TokenAddress = "0x4A0F0ca3A08084736c0ef1a3bbB3752EA4308bD3";
         const erc20Contract = new ethers_1.ethers.Contract(erc20TokenAddress, abi, provider);
-        let mintAddress = "0x6Cf0944aDB0e90E3b89d0505e9B9668E8c0E0bA1";
-        let mint = yield erc20Contract.populateTransaction.mint(mintAddress, 1000);
+        let mintAddress = recipientAddress;
+        let mint = yield erc20Contract.populateTransaction.mint(mintAddress, amount);
         mint = Object.assign(Object.assign({}, mint), { from: safeAddress, chainId: (yield provider.getNetwork()).chainId, nonce: yield provider.getTransactionCount(safeAddress), type: 113, customData: {
                 gasPerPubdata: zksync_web3_1.utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
                 // paymasterParams: paymasterParams,
@@ -399,7 +408,7 @@ const getSignedTxnHash = (req, res) => __awaiter(void 0, void 0, void 0, functio
 exports.getSignedTxnHash = getSignedTxnHash;
 const signTxn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { signedDigest, signerAddress, safeAddress, txnId } = req.body;
+        const { signedDigest, signerAddress, safeAddress, txnId, recipientAddress, txnAmount } = req.body;
         const txn = yield model_1.Transaction.findById(txnId);
         const account = yield model_1.Account.findOne({ accountAddress: safeAddress });
         if (!account) {
@@ -433,8 +442,8 @@ const signTxn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             const provider = new zksync_web3_1.Provider("https://zksync2-testnet.zksync.dev");
             const erc20TokenAddress = "0x4A0F0ca3A08084736c0ef1a3bbB3752EA4308bD3";
             const erc20Contract = new ethers_1.ethers.Contract(erc20TokenAddress, abi, provider);
-            let mintAddress = "0x6Cf0944aDB0e90E3b89d0505e9B9668E8c0E0bA1";
-            let mint = yield erc20Contract.populateTransaction.mint(mintAddress, 1000);
+            // let mintAddress = "0x6Cf0944aDB0e90E3b89d0505e9B9668E8c0E0bA1"
+            let mint = yield erc20Contract.populateTransaction.mint(recipientAddress, txnAmount);
             // let signedDigestsByOwners = [ethers.utils.joinSignature("0xd67ebc4688820752fd8b75c9e0fa35390285539d72424ce09310a6264b76b4df1d9b0085ac01921b0d4a26a33da629bb7441f05b5cc43ac07f669245b0ce07401b"), ethers.utils.joinSignature("0xfc2040f642a9e912e9c7572f659c7b638a6109b478411efaa42a9f11a2841e1425c34baa8cb73edc44a3fdbf25cdd905f4b3608d639fce32ba63131e040577531c")];
             let signedDigestsByOwners = [];
             for (let i = 0; i < txn.signedOwners.length; i++) {
