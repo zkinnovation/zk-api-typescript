@@ -11,15 +11,35 @@ const signatureSchema = new mongoose.Schema({
     }
 })
 
+const socialRecoverySchema = new mongoose.Schema({
+    smartAccount: {
+        type: String,
+        required: true
+    },
+    enabled: {
+        type: Boolean,
+        required: true
+    },
+    enabledBy: {
+        type: String,
+    },
+    signatures: {
+        type: [String]
+    },
+    signedBy: {
+        type: [String]
+    }
+})
+
 const transactionSchema = new mongoose.Schema({
     transactionType: {
         type: String,
         required: true
     },
-    requiredThreshold: {
-        type: Number,
-        required: true
-    },
+    // requiredThreshold: {
+    //     type: Number,
+    //     required: true
+    // },
     currentSignCount: {
         type: Number,
         required: true
@@ -35,6 +55,10 @@ const transactionSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    paymaster: {
+        type: Boolean,
+        required: true
+    }
 });
 
 const accountSchema = new mongoose.Schema({
@@ -62,6 +86,14 @@ const accountSchema = new mongoose.Schema({
     network: {
         type: String,
         required: true
+    },
+    socialRecoveryConfig: {
+        type: socialRecoverySchema,
+        required: true
+    },
+    socialRecoveryModuleAddress: {
+        type: String,
+        required: true
     }
 });
 
@@ -69,4 +101,5 @@ const accountSchema = new mongoose.Schema({
 export const Account = mongoose.model('Account', accountSchema);
 export const Transaction = mongoose.model('Transaction', transactionSchema);
 export const Signature = mongoose.model('Signature', signatureSchema);
+export const SCR = mongoose.model('SCR', socialRecoverySchema);
 

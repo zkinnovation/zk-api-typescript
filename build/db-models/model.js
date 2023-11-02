@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Signature = exports.Transaction = exports.Account = void 0;
+exports.SCR = exports.Signature = exports.Transaction = exports.Account = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const signatureSchema = new mongoose_1.default.Schema({
     signerAddress: {
@@ -15,15 +15,34 @@ const signatureSchema = new mongoose_1.default.Schema({
         required: true
     }
 });
+const socialRecoverySchema = new mongoose_1.default.Schema({
+    smartAccount: {
+        type: String,
+        required: true
+    },
+    enabled: {
+        type: Boolean,
+        required: true
+    },
+    enabledBy: {
+        type: String,
+    },
+    signatures: {
+        type: [String]
+    },
+    signedBy: {
+        type: [String]
+    }
+});
 const transactionSchema = new mongoose_1.default.Schema({
     transactionType: {
         type: String,
         required: true
     },
-    requiredThreshold: {
-        type: Number,
-        required: true
-    },
+    // requiredThreshold: {
+    //     type: Number,
+    //     required: true
+    // },
     currentSignCount: {
         type: Number,
         required: true
@@ -39,6 +58,10 @@ const transactionSchema = new mongoose_1.default.Schema({
         type: String,
         required: true
     },
+    paymaster: {
+        type: Boolean,
+        required: true
+    }
 });
 const accountSchema = new mongoose_1.default.Schema({
     accountAddress: {
@@ -65,10 +88,19 @@ const accountSchema = new mongoose_1.default.Schema({
     network: {
         type: String,
         required: true
+    },
+    socialRecoveryConfig: {
+        type: socialRecoverySchema,
+        required: true
+    },
+    socialRecoveryModuleAddress: {
+        type: String,
+        required: true
     }
 });
 // Define the models based on the schemas
 exports.Account = mongoose_1.default.model('Account', accountSchema);
 exports.Transaction = mongoose_1.default.model('Transaction', transactionSchema);
 exports.Signature = mongoose_1.default.model('Signature', signatureSchema);
+exports.SCR = mongoose_1.default.model('SCR', socialRecoverySchema);
 //# sourceMappingURL=model.js.map
