@@ -9,6 +9,7 @@ const app = express();
 const port = 8001;
 const connection_url = process.env.MONGODB_URL;
 console.log(connection_url)
+
 // middleware 
 app.use(express.json());
 app.use(Cors());
