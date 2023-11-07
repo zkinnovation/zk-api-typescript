@@ -3,11 +3,13 @@ import Cors from 'cors';
 import mongoose from 'mongoose';
 import accountRoutes from "./routes/accountRoutes";
 import transactionRoutes from "./routes/transactionRoutes";
+import * as dotenv from "dotenv"
 
+dotenv.config()
 //app setup
 const app = express();
 const port = process.env.PORT || 8001;
-const connection_url = "mongodb+srv://appskans2017:8RXeQcdCjMmqIBTT@cluster0.oacodo4.mongodb.net/zkapidb?retryWrites=true&w=majority";
+const connection_url = process.env.MONGODB_URL;
 
 // middleware 
 app.use(express.json());

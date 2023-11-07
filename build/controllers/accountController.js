@@ -123,7 +123,7 @@ const getSCRTxnHash = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         const provider = new zksync_web3_1.Provider("https://zksync2-testnet.zksync.dev");
         const wallet = new ethers_1.Wallet("0470b3a89b046cdca84671d3ad445f0ecdb7cfa82b5154df393260a28cabd2e2").connect(provider);
-        const account = new ethers_1.ethers.Contract(safeAddress, exports_1.TwoUserMultiSigABI, wallet);
+        const account = new ethers_1.ethers.Contract(safeAddress, exports_1.TwoUserMultiSigABI, provider);
         let aaTx = yield account.populateTransaction.enableModule(scrmAddress);
         aaTx = Object.assign(Object.assign({}, aaTx), { 
             // deploy a new account using the multisig
@@ -160,7 +160,7 @@ const signScrTxn = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         console.log(scr.signatures);
         const provider = new zksync_web3_1.Provider("https://zksync2-testnet.zksync.dev");
         const wallet = new ethers_1.Wallet("0470b3a89b046cdca84671d3ad445f0ecdb7cfa82b5154df393260a28cabd2e2").connect(provider);
-        const account = new ethers_1.ethers.Contract(safeAddress, exports_1.TwoUserMultiSigABI, wallet);
+        const account = new ethers_1.ethers.Contract(safeAddress, exports_1.TwoUserMultiSigABI, provider);
         let signedDigestsByOwners = [];
         for (let i = 0; i < scr.signatures.length; i++) {
             signedDigestsByOwners.push(scr.signatures[i]);

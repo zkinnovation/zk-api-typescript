@@ -122,7 +122,7 @@ export const getSCRTxnHash = async (req: Request, res: Response) => {
         const provider = new Provider("https://zksync2-testnet.zksync.dev");
 
         const wallet = new Wallet("0470b3a89b046cdca84671d3ad445f0ecdb7cfa82b5154df393260a28cabd2e2").connect(provider)
-        const account = new ethers.Contract(safeAddress, TwoUserMultiSigABI, wallet);
+        const account = new ethers.Contract(safeAddress, TwoUserMultiSigABI, provider);
 
         let aaTx = await account.populateTransaction.enableModule(scrmAddress);
         aaTx = {
@@ -169,9 +169,7 @@ export const signScrTxn = async (req: Request, res: Response) => {
         console.log(scr.signatures)
         const provider = new Provider("https://zksync2-testnet.zksync.dev");
         const wallet = new Wallet("0470b3a89b046cdca84671d3ad445f0ecdb7cfa82b5154df393260a28cabd2e2").connect(provider)
-
-        const account = new ethers.Contract(safeAddress, TwoUserMultiSigABI, wallet);
-
+        const account = new ethers.Contract(safeAddress, TwoUserMultiSigABI, provider);
         let signedDigestsByOwners = [];
         for (let i = 0; i < scr.signatures.length; i++) {
             signedDigestsByOwners.push(scr.signatures[i]);
