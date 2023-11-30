@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose, { Types } from 'mongoose';
 
 const signatureSchema = new mongoose.Schema({
     signerAddress: {
@@ -8,7 +8,8 @@ const signatureSchema = new mongoose.Schema({
     signedDigest: {
         type: String,
         required: true
-    }
+    },
+
 })
 
 const socialRecoverySchema = new mongoose.Schema({
@@ -24,11 +25,9 @@ const socialRecoverySchema = new mongoose.Schema({
         type: String,
     },
     signatures: {
-        type: [String]
+        type: [signatureSchema]
     },
-    signedBy: {
-        type: [String]
-    }
+
 })
 
 const transactionSchema = new mongoose.Schema({
@@ -36,10 +35,6 @@ const transactionSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    // requiredThreshold: {
-    //     type: Number,
-    //     required: true
-    // },
     currentSignCount: {
         type: Number,
         required: true
@@ -60,6 +55,42 @@ const transactionSchema = new mongoose.Schema({
         required: true
     }
 });
+
+const guardianSchema = new mongoose.Schema({
+    safeAddress: {
+        type: String,
+        required: true
+    },
+    assignedBy: {
+        type: String,
+        required: true
+    },
+    guardianAddress: {
+        type: String,
+        required: true
+    },
+    approvalSignatures: {
+        type: [signatureSchema],
+        default: []
+    },
+    approvedStatus: {
+        type: String,
+        default: "hold", // approved, rejected, hold
+        required: true
+    },
+    rejectedBy: {
+        type: String,
+    },
+    currentSetThreshold: {
+        type: Number,
+        required: true
+    },
+    assignedAt: {
+        type: Date,
+        default: Date.now
+    }
+
+})
 
 const accountSchema = new mongoose.Schema({
     accountAddress: {
@@ -94,6 +125,13 @@ const accountSchema = new mongoose.Schema({
     socialRecoveryModuleAddress: {
         type: String,
         required: true
+    },
+    accountGuardians: {
+        type: [guardianSchema]
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now()
     }
 });
 
@@ -102,4 +140,5 @@ export const Account = mongoose.model('Account', accountSchema);
 export const Transaction = mongoose.model('Transaction', transactionSchema);
 export const Signature = mongoose.model('Signature', signatureSchema);
 export const SCR = mongoose.model('SCR', socialRecoverySchema);
+export const Guardian = mongoose.model('Guardian', guardianSchema);
 

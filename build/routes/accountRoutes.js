@@ -12,5 +12,7 @@ router.route("/checkSCR").post(accountController_1.checkSCRStatus);
 router.route("/:accountAddress").get(accountController_1.getAccount);
 router.route("/getTxnHash").post(accountController_1.getSCRTxnHash);
 router.route("/signSCRTxn").post(accountController_1.signScrTxn);
+router.route("/addGuardian").post(accountController_1.addGuardian);
+router.route("/signForGuardianApproval").post(accountController_1.signForGuardianApproval);
 exports.default = router;
 //# sourceMappingURL=accountRoutes.js.map

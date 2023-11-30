@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SCR = exports.Signature = exports.Transaction = exports.Account = void 0;
+exports.Guardian = exports.SCR = exports.Signature = exports.Transaction = exports.Account = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const signatureSchema = new mongoose_1.default.Schema({
     signerAddress: {
@@ -13,7 +13,7 @@ const signatureSchema = new mongoose_1.default.Schema({
     signedDigest: {
         type: String,
         required: true
-    }
+    },
 });
 const socialRecoverySchema = new mongoose_1.default.Schema({
     smartAccount: {
@@ -28,21 +28,14 @@ const socialRecoverySchema = new mongoose_1.default.Schema({
         type: String,
     },
     signatures: {
-        type: [String]
+        type: [signatureSchema]
     },
-    signedBy: {
-        type: [String]
-    }
 });
 const transactionSchema = new mongoose_1.default.Schema({
     transactionType: {
         type: String,
         required: true
     },
-    // requiredThreshold: {
-    //     type: Number,
-    //     required: true
-    // },
     currentSignCount: {
         type: Number,
         required: true
@@ -61,6 +54,40 @@ const transactionSchema = new mongoose_1.default.Schema({
     paymaster: {
         type: Boolean,
         required: true
+    }
+});
+const guardianSchema = new mongoose_1.default.Schema({
+    safeAddress: {
+        type: String,
+        required: true
+    },
+    assignedBy: {
+        type: String,
+        required: true
+    },
+    guardianAddress: {
+        type: String,
+        required: true
+    },
+    approvalSignatures: {
+        type: [signatureSchema],
+        default: []
+    },
+    approvedStatus: {
+        type: String,
+        default: "hold",
+        required: true
+    },
+    rejectedBy: {
+        type: String,
+    },
+    currentSetThreshold: {
+        type: Number,
+        required: true
+    },
+    assignedAt: {
+        type: Date,
+        default: Date.now
     }
 });
 const accountSchema = new mongoose_1.default.Schema({
@@ -96,6 +123,13 @@ const accountSchema = new mongoose_1.default.Schema({
     socialRecoveryModuleAddress: {
         type: String,
         required: true
+    },
+    accountGuardians: {
+        type: [guardianSchema]
+    },
+    createdAt: {
+        type: Date,
+        default: Date.now()
     }
 });
 // Define the models based on the schemas
@@ -103,4 +137,5 @@ exports.Account = mongoose_1.default.model('Account', accountSchema);
 exports.Transaction = mongoose_1.default.model('Transaction', transactionSchema);
 exports.Signature = mongoose_1.default.model('Signature', signatureSchema);
 exports.SCR = mongoose_1.default.model('SCR', socialRecoverySchema);
+exports.Guardian = mongoose_1.default.model('Guardian', guardianSchema);
 //# sourceMappingURL=model.js.map

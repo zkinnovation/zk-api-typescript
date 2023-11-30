@@ -35,6 +35,7 @@ export const createTxn = async (req: Request, res: Response) => {
             paymaster: paymasterEnable
         });
         await newTxn.save()
+        
         account.transactions.push(newTxn);
         await account.save();
 
