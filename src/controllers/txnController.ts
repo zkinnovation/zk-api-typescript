@@ -43,7 +43,7 @@ export const createTxn = async (req: Request, res: Response) => {
 
     } catch (error) {
         console.log(error);
-        res.status(500).send('Internal Server Error during creation of new txn');
+        res.status(500).send({message:"Internal server error while creating a txn", data:error});
     }
 };
 
