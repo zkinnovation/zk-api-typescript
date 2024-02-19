@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Guardian = exports.SCR = exports.Signature = exports.Transaction = exports.Account = void 0;
+exports.Recovery = exports.ConfirmRecovery = exports.Guardian = exports.SCR = exports.Signature = exports.Transaction = exports.Account = void 0;
 const mongoose_1 = __importDefault(require("mongoose"));
 const signatureSchema = new mongoose_1.default.Schema({
     signerAddress: {
@@ -31,12 +31,38 @@ const socialRecoverySchema = new mongoose_1.default.Schema({
         type: [signatureSchema]
     },
 });
+const confirmRecoverySchema = new mongoose_1.default.Schema({
+    guardianAssociated: {
+        type: String,
+        required: true
+    },
+    walletAssociated: {
+        type: String,
+        required: true
+    },
+    recoveryAddresses: {
+        type: [String],
+        required: true
+    },
+    newThresholdSet: {
+        type: Number,
+        required: true
+    },
+    executeFlag: {
+        type: Boolean,
+        required: true
+    }
+});
 const transactionSchema = new mongoose_1.default.Schema({
     transactionType: {
         type: String,
         required: true
     },
     currentSignCount: {
+        type: Number,
+        required: true
+    },
+    currentSetAccountThreshold: {
         type: Number,
         required: true
     },
@@ -61,6 +87,10 @@ const guardianSchema = new mongoose_1.default.Schema({
         type: String,
         required: true
     },
+    guardianType: {
+        type: String,
+        required: true
+    },
     assignedBy: {
         type: String,
         required: true
@@ -80,6 +110,7 @@ const guardianSchema = new mongoose_1.default.Schema({
     },
     rejectedBy: {
         type: String,
+        default: ""
     },
     currentSetThreshold: {
         type: Number,
@@ -88,6 +119,31 @@ const guardianSchema = new mongoose_1.default.Schema({
     assignedAt: {
         type: Date,
         default: Date.now
+    },
+});
+const recoverySchema = new mongoose_1.default.Schema({
+    recoveryId: {
+        type: String,
+        required: true
+    },
+    recoveryReason: {
+        type: String,
+        default: ""
+    },
+    associatedZKWallet: {
+        type: String,
+        required: true
+    },
+    initiatedBy: {
+        type: String,
+        required: true
+    },
+    confirmedRecoveryList: {
+        type: [confirmRecoverySchema],
+        default: [] // take the data of the confirm recovery calls into this
+    },
+    recoveryStatus: {
+        type: String, // ongoing, killed, completed
     }
 });
 const accountSchema = new mongoose_1.default.Schema({
@@ -127,6 +183,10 @@ const accountSchema = new mongoose_1.default.Schema({
     accountGuardians: {
         type: [guardianSchema]
     },
+    recoveries: {
+        type: [recoverySchema],
+        default: []
+    },
     createdAt: {
         type: Date,
         default: Date.now()
@@ -138,4 +198,6 @@ exports.Transaction = mongoose_1.default.model('Transaction', transactionSchema)
 exports.Signature = mongoose_1.default.model('Signature', signatureSchema);
 exports.SCR = mongoose_1.default.model('SCR', socialRecoverySchema);
 exports.Guardian = mongoose_1.default.model('Guardian', guardianSchema);
+exports.ConfirmRecovery = mongoose_1.default.model('ConfirmRecovery', confirmRecoverySchema);
+exports.Recovery = mongoose_1.default.model('Recovery', recoverySchema);
 //# sourceMappingURL=model.js.map

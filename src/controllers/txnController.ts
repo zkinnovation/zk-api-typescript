@@ -7,6 +7,7 @@ import { ERC20ABI } from "../exports";
 const abi = ERC20ABI;
 
 export const createTxn = async (req: Request, res: Response) => {
+    // to create a txn..
     try {
         const { safeAddress, transactionType, userAddress, txnAmount, recipientAddress, paymasterEnable } = req.body;
         const account = await Account.findOne({ accountAddress: safeAddress }).exec();
@@ -29,13 +30,14 @@ export const createTxn = async (req: Request, res: Response) => {
             transactionType: transactionType,
             // requiredThreshold: requiredThreshold,
             currentSignCount: 0,
+            currentSetAccountThreshold: account.setThreshold,
             signedOwners: [],
             txnAmount: txnAmount,
             recipientAddress: recipientAddress,
             paymaster: paymasterEnable
         });
         await newTxn.save()
-        
+
         account.transactions.push(newTxn);
         await account.save();
 
@@ -43,23 +45,27 @@ export const createTxn = async (req: Request, res: Response) => {
 
     } catch (error) {
         console.log(error);
-        res.status(500).send({message:"Internal server error while creating a txn", data:error});
+        res.status(500).send({ message: "Internal server error while creating a txn", data: error });
     }
 };
 
 export const getTxnsBySafeAddress = async (req: Request, res: Response) => {
+    // get the transaction history of a particular safe account..
     try {
         const { safeAddress } = req.params;
         const account = await Account.findOne({ accountAddress: safeAddress });
+
         if (!account) {
             return res.status(404).json({ message: "Account not found" });
         }
+
         let transactions = [];
         for (let i = 0; i < account.transactions.length; i++) {
             const txnId = account.transactions[i]._id;
             const txn = await Transaction.findById(txnId);
             transactions.push(txn)
         }
+
         res.status(200).json({ transactions: transactions })
     } catch (error) {
         console.log(error);
@@ -67,14 +73,22 @@ export const getTxnsBySafeAddress = async (req: Request, res: Response) => {
     }
 };
 export const getSignedTxnHash = async (req: Request, res: Response) => {
+    // to get the signed txn hash and sending it to the client (owner) for generating the signature.
     try {
         const { safeAddress, amount, recipientAddress, paymasterParams, txnType } = req.body
+        // initializing the blockchain provider
         const provider = new ethers.providers.JsonRpcProvider("https://zksync2-testnet.zksync.dev");
+
+        // for mint txn type..
         if (txnType === 'mint') {
+            // test token address...
             const erc20TokenAddress = "0x4A0F0ca3A08084736c0ef1a3bbB3752EA4308bD3";
             const erc20Contract = new ethers.Contract(erc20TokenAddress, abi, provider);
             let mintAddress = recipientAddress;
+
+            // checking if the paymaster needed to be added to this txn
             if (paymasterParams === true) {
+                // paymaster contract's deployed address
                 const paymaster = "0x97E5A77B5f77fC3B657B84059D15Fe5b377E6519"
                 const paymasterParams = utils.getPaymasterParams(paymaster, {
                     type: "ApprovalBased",
@@ -84,6 +98,8 @@ export const getSignedTxnHash = async (req: Request, res: Response) => {
                     // empty bytes as testnet paymaster does not use innerInput
                     innerInput: new Uint8Array(),
                 });
+
+                // populating the contract call transaction..
                 let mint = await erc20Contract.populateTransaction.mint(mintAddress, amount);
                 mint = {
                     ...mint,
@@ -99,11 +115,15 @@ export const getSignedTxnHash = async (req: Request, res: Response) => {
                 };
                 mint.gasPrice = await provider.getGasPrice();
                 mint.gasLimit = ethers.BigNumber.from(2000000);
+
+                // generating the signed txn hash..
                 const signedTxHash = EIP712Signer.getSignedDigest(mint);
+
                 console.log("Sending signed txn hash for mint with paymaster params...")
                 return res.status(200).json({ message: signedTxHash })
             }
             if (paymasterParams === false) {
+                // populating the contract call txn..
                 let mint = await erc20Contract.populateTransaction.mint(mintAddress, amount);
                 mint = {
                     ...mint,
@@ -119,16 +139,24 @@ export const getSignedTxnHash = async (req: Request, res: Response) => {
                 };
                 mint.gasPrice = await provider.getGasPrice();
                 mint.gasLimit = ethers.BigNumber.from(2000000);
+
+                // generating the signed txn hash and sending it to the client..
                 const signedTxHash = EIP712Signer.getSignedDigest(mint);
                 console.log("Sending signed txn hash for mint without paymaster params...")
                 return res.status(200).json({ message: signedTxHash })
             }
         }
+
+        // for transfer txn type...
         if (txnType === 'transfer') {
+            // same test token address
             const erc20TokenAddress = "0x4A0F0ca3A08084736c0ef1a3bbB3752EA4308bD3";
             const erc20Contract = new ethers.Contract(erc20TokenAddress, abi, provider);
             let recipientAddr = recipientAddress;
+
+            // when paymaster is enabled for this txn..
             if (paymasterParams === true) {
+                // paymaster contract's deployed address
                 const paymaster = "0x97E5A77B5f77fC3B657B84059D15Fe5b377E6519"
                 const paymasterParams = utils.getPaymasterParams(paymaster, {
                     type: "ApprovalBased",
@@ -138,6 +166,8 @@ export const getSignedTxnHash = async (req: Request, res: Response) => {
                     // empty bytes as testnet paymaster does not use innerInput
                     innerInput: new Uint8Array(),
                 });
+
+                // populating the contract call txn..
                 let transfer = await erc20Contract.populateTransaction.transfer(recipientAddr, amount);
                 transfer = {
                     ...transfer,
@@ -153,11 +183,14 @@ export const getSignedTxnHash = async (req: Request, res: Response) => {
                 };
                 transfer.gasPrice = await provider.getGasPrice();
                 transfer.gasLimit = ethers.BigNumber.from(2000000);
+
+                // getting the signed txn hash and sending it back to the client
                 const signedTxHash = EIP712Signer.getSignedDigest(transfer);
                 console.log("Sending signed txn hash for Transfer with paymaster params...")
                 return res.status(200).json({ message: signedTxHash })
             }
             if (paymasterParams === false) {
+                // populating the contract call txn..
                 let transfer = await erc20Contract.populateTransaction.transfer(recipientAddr, amount);
                 transfer = {
                     ...transfer,
@@ -172,24 +205,30 @@ export const getSignedTxnHash = async (req: Request, res: Response) => {
                 };
                 transfer.gasPrice = await provider.getGasPrice();
                 transfer.gasLimit = ethers.BigNumber.from(2000000);
+
+                // generating the signed txn hash and sending it to the client for the obtaining the signatures..
                 const signedTxHash = EIP712Signer.getSignedDigest(transfer);
                 console.log("Sending signed txn hash for Transfer without paymaster params...")
                 return res.status(200).json({ message: signedTxHash })
             }
         }
-
     } catch (error) {
-        res.status(500).json({ message: "Internal Server Error" });
-
+        res.status(500).json({ message: "Internal Server Error while sending the txn hash" });
     }
 }
 
 export const signTxn = async (req: Request, res: Response) => {
+    //store the signatures (of mint/transfer fn) into the db 
+
     try {
         const { signedDigest, signerAddress, safeAddress, txnId, recipientAddress, txnAmount, txnType } = req.body;
         const txn = await Transaction.findById(txnId);
         const account = await Account.findOne({ accountAddress: safeAddress });
 
+        // some basic validations..
+        if (txn.signedOwners.includes(signerAddress)) {
+            return res.status(404).json({ message: "Signer already signed for this transaction" })
+        }
         if (!account) {
             return res.status(404).json({ message: "Account not found" });
         }
@@ -202,6 +241,8 @@ export const signTxn = async (req: Request, res: Response) => {
         // if (!account.owners.includes(signerAddress)) {
         //     return res.status(403).json({ message: "Unauthorized signer" });
         // }
+
+        // creating a new signature db doc object and saving it to the db collections..
         const signature = new Signature({
             signerAddress: signerAddress,
             signedDigest: signedDigest
@@ -220,13 +261,20 @@ export const signTxn = async (req: Request, res: Response) => {
         });
         await account.save();
 
+        // if the threshold amount of txns are obtained..
         if (txn.currentSignCount === account.setThreshold) {
+            // if the txn type is mint..
             if (txnType === 'mint') {
+                // checking if paymaster was enabled for this txn..
                 if (txn.paymaster === true) {
-                    console.log("Paymaster enabled")
+                    // console.log("Paymaster enabled")
+
+                    // setting up blockchain and contract connections
                     const provider = new Provider("https://zksync2-testnet.zksync.dev");
                     const erc20TokenAddress = "0x4A0F0ca3A08084736c0ef1a3bbB3752EA4308bD3";
                     const erc20Contract = new ethers.Contract(erc20TokenAddress, abi, provider);
+
+                    // paymaster deployed address and configuration..
                     const paymaster = "0x97E5A77B5f77fC3B657B84059D15Fe5b377E6519"
                     const paymasterParams = utils.getPaymasterParams(paymaster, {
                         type: "ApprovalBased",
@@ -236,13 +284,18 @@ export const signTxn = async (req: Request, res: Response) => {
                         // empty bytes as testnet paymaster does not use innerInput
                         innerInput: new Uint8Array(),
                     });
+
+                    // populating the mint contract call txn..
                     let mint = await erc20Contract.populateTransaction.mint(recipientAddress, txnAmount);
-                    // let signedDigestsByOwners = [ethers.utils.joinSignature("0xd67ebc4688820752fd8b75c9e0fa35390285539d72424ce09310a6264b76b4df1d9b0085ac01921b0d4a26a33da629bb7441f05b5cc43ac07f669245b0ce07401b"), ethers.utils.joinSignature("0xfc2040f642a9e912e9c7572f659c7b638a6109b478411efaa42a9f11a2841e1425c34baa8cb73edc44a3fdbf25cdd905f4b3608d639fce32ba63131e040577531c")];
+
+                    // bundling the txn signatures of owners..
                     let signedDigestsByOwners = [];
                     for (let i = 0; i < txn.signedOwners.length; i++) {
                         signedDigestsByOwners.push(txn.signedOwners[i].signedDigest);
                     }
                     const concatenatedSignatures = ethers.utils.concat(signedDigestsByOwners);
+
+                    // forming the final eip712 structure..
                     mint = {
                         ...mint,
                         from: safeAddress,
@@ -257,30 +310,36 @@ export const signTxn = async (req: Request, res: Response) => {
                     };
                     mint.gasPrice = await provider.getGasPrice();
                     mint.gasLimit = ethers.BigNumber.from(2000000);
-                    // const signedTxHash = EIP712Signer.getSignedDigest(mint);
-
                     mint.customData = {
                         ...mint.customData,
                         customSignature: concatenatedSignatures,
                     } as types.Eip712Meta;
-                    console.log(mint)
+                    console.log("eip712 str to be serialized and sent to chain - ", mint)
+
+                    // sending the serialized eip712 typed structure into the chain..
                     const sentTx = await provider.sendTransaction(utils.serialize(mint));
                     await sentTx.wait();
-                    console.log("after")
+
+                    console.log("after sending.. - ", sentTx)
                     return res.status(200).json({ message: "Mint Transaction signed successfully and TRANSACTION EXECUTED FROM SERVER END" });
                 }
                 if (txn.paymaster === false) {
+                    // setting up blockchain and contract connections
                     const provider = new Provider("https://zksync2-testnet.zksync.dev");
                     const erc20TokenAddress = "0x4A0F0ca3A08084736c0ef1a3bbB3752EA4308bD3";
                     const erc20Contract = new ethers.Contract(erc20TokenAddress, abi, provider);
-                    // let mintAddress = "0x6Cf0944aDB0e90E3b89d0505e9B9668E8c0E0bA1"
+
+                    // populating the txn..
                     let mint = await erc20Contract.populateTransaction.mint(recipientAddress, txnAmount);
-                    // let signedDigestsByOwners = [ethers.utils.joinSignature("0xd67ebc4688820752fd8b75c9e0fa35390285539d72424ce09310a6264b76b4df1d9b0085ac01921b0d4a26a33da629bb7441f05b5cc43ac07f669245b0ce07401b"), ethers.utils.joinSignature("0xfc2040f642a9e912e9c7572f659c7b638a6109b478411efaa42a9f11a2841e1425c34baa8cb73edc44a3fdbf25cdd905f4b3608d639fce32ba63131e040577531c")];
+
+                    // bundling the txn signatures by owners..
                     let signedDigestsByOwners = [];
                     for (let i = 0; i < txn.signedOwners.length; i++) {
                         signedDigestsByOwners.push(txn.signedOwners[i].signedDigest);
                     }
                     const concatenatedSignatures = ethers.utils.concat(signedDigestsByOwners);
+
+                    // finalizing the 712 structure..
                     mint = {
                         ...mint,
                         from: safeAddress,
@@ -289,32 +348,35 @@ export const signTxn = async (req: Request, res: Response) => {
                         type: 113,
                         customData: {
                             gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-                            // paymasterParams: paymasterParams,
                         } as types.Eip712Meta,
                         value: ethers.BigNumber.from(0),
                     };
                     mint.gasPrice = await provider.getGasPrice();
                     mint.gasLimit = ethers.BigNumber.from(2000000);
-                    // const signedTxHash = EIP712Signer.getSignedDigest(mint);
-
                     mint.customData = {
                         ...mint.customData,
                         customSignature: concatenatedSignatures,
                     } as types.Eip712Meta;
-                    console.log(mint)
+                    console.log("eip712 str to be serialized and sent to chain - ", mint)
+
+                    // sending the serialized eip712 typed structure into the chain..
                     const sentTx = await provider.sendTransaction(utils.serialize(mint));
                     await sentTx.wait();
-                    console.log("after")
+                    console.log("Transaction Executed -", sentTx)
                     return res.status(200).json({ message: "Mint Transaction signed successfully and TRANSACTION EXECUTED FROM SERVER END" });
                 }
             }
 
+            // if the txn type is transfer..
             if (txnType === "transfer") {
+                // checking if paymaster was enabled for this txn..
                 if (txn.paymaster === true) {
-                    console.log("Paymaster enabled")
+                    // setting up blockchain and contract connections
                     const provider = new Provider("https://zksync2-testnet.zksync.dev");
                     const erc20TokenAddress = "0x4A0F0ca3A08084736c0ef1a3bbB3752EA4308bD3";
                     const erc20Contract = new ethers.Contract(erc20TokenAddress, abi, provider);
+
+                    // paymaster deployed address and configuration..
                     const paymaster = "0x97E5A77B5f77fC3B657B84059D15Fe5b377E6519"
                     const paymasterParams = utils.getPaymasterParams(paymaster, {
                         type: "ApprovalBased",
@@ -324,13 +386,18 @@ export const signTxn = async (req: Request, res: Response) => {
                         // empty bytes as testnet paymaster does not use innerInput
                         innerInput: new Uint8Array(),
                     });
+
+                    // populating the txn...
                     let transfer = await erc20Contract.populateTransaction.transfer(recipientAddress, txnAmount);
-                    // let signedDigestsByOwners = [ethers.utils.joinSignature("0xd67ebc4688820752fd8b75c9e0fa35390285539d72424ce09310a6264b76b4df1d9b0085ac01921b0d4a26a33da629bb7441f05b5cc43ac07f669245b0ce07401b"), ethers.utils.joinSignature("0xfc2040f642a9e912e9c7572f659c7b638a6109b478411efaa42a9f11a2841e1425c34baa8cb73edc44a3fdbf25cdd905f4b3608d639fce32ba63131e040577531c")];
+
+                    // bundling the signatures..
                     let signedDigestsByOwners = [];
                     for (let i = 0; i < txn.signedOwners.length; i++) {
                         signedDigestsByOwners.push(txn.signedOwners[i].signedDigest);
                     }
                     const concatenatedSignatures = ethers.utils.concat(signedDigestsByOwners);
+
+                    // finalizing the transfer eip712 str..
                     transfer = {
                         ...transfer,
                         from: safeAddress,
@@ -345,30 +412,35 @@ export const signTxn = async (req: Request, res: Response) => {
                     };
                     transfer.gasPrice = await provider.getGasPrice();
                     transfer.gasLimit = ethers.BigNumber.from(2000000);
-                    // const signedTxHash = EIP712Signer.getSignedDigest(mint);
-
                     transfer.customData = {
                         ...transfer.customData,
                         customSignature: concatenatedSignatures,
                     } as types.Eip712Meta;
-                    console.log(transfer)
+                    console.log("eip712 str to be serialized and sent to chain - ", transfer)
+
+                    // sending the serialized eip712 typed structure into the chain..
                     const sentTx = await provider.sendTransaction(utils.serialize(transfer));
                     await sentTx.wait();
-                    console.log("after")
+                    console.log("after waiting - ", sentTx)
                     return res.status(200).json({ message: "Transfer Transaction signed successfully and TRANSACTION EXECUTED FROM SERVER END" });
                 }
                 if (txn.paymaster === false) {
+                    // setting up blockchain and contract connections
                     const provider = new Provider("https://zksync2-testnet.zksync.dev");
                     const erc20TokenAddress = "0x4A0F0ca3A08084736c0ef1a3bbB3752EA4308bD3";
                     const erc20Contract = new ethers.Contract(erc20TokenAddress, abi, provider);
-                    // let mintAddress = "0x6Cf0944aDB0e90E3b89d0505e9B9668E8c0E0bA1"
+
+                    // populating the txn..
                     let transfer = await erc20Contract.populateTransaction.transfer(recipientAddress, txnAmount);
-                    // let signedDigestsByOwners = [ethers.utils.joinSignature("0xd67ebc4688820752fd8b75c9e0fa35390285539d72424ce09310a6264b76b4df1d9b0085ac01921b0d4a26a33da629bb7441f05b5cc43ac07f669245b0ce07401b"), ethers.utils.joinSignature("0xfc2040f642a9e912e9c7572f659c7b638a6109b478411efaa42a9f11a2841e1425c34baa8cb73edc44a3fdbf25cdd905f4b3608d639fce32ba63131e040577531c")];
+
+                    // bundling the signatures.. 
                     let signedDigestsByOwners = [];
                     for (let i = 0; i < txn.signedOwners.length; i++) {
                         signedDigestsByOwners.push(txn.signedOwners[i].signedDigest);
                     }
                     const concatenatedSignatures = ethers.utils.concat(signedDigestsByOwners);
+
+                    // forming the final eip712 txn structure ..
                     transfer = {
                         ...transfer,
                         from: safeAddress,
@@ -377,22 +449,21 @@ export const signTxn = async (req: Request, res: Response) => {
                         type: 113,
                         customData: {
                             gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-                            // paymasterParams: paymasterParams,
                         } as types.Eip712Meta,
                         value: ethers.BigNumber.from(0),
                     };
                     transfer.gasPrice = await provider.getGasPrice();
                     transfer.gasLimit = ethers.BigNumber.from(2000000);
-                    // const signedTxHash = EIP712Signer.getSignedDigest(mint);
-
                     transfer.customData = {
                         ...transfer.customData,
                         customSignature: concatenatedSignatures,
                     } as types.Eip712Meta;
-                    console.log(transfer)
+                    console.log("eip712 str to be serialized and sent to chain - ", transfer)
+
+                    // sending the serialized eip712 typed structure into the chain..
                     const sentTx = await provider.sendTransaction(utils.serialize(transfer));
                     await sentTx.wait();
-                    console.log("after")
+                    console.log("after - ", sentTx)
                     return res.status(200).json({ message: "Transfer Transaction signed successfully and TRANSACTION EXECUTED FROM SERVER END" });
                 }
             }
