@@ -39,7 +39,7 @@ export const getAccount = async (req: Request, res: Response) => {
         if (!account) {
             return res.status(404).json({ message: 'Account not found' });
         }
-        return res.status(200).json(account)
+        return res.status(200).json("account")
     } catch (error) {
         res.status(500).send('Internal Server Error during fetch of the account');
 
