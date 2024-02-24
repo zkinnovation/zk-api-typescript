@@ -11,7 +11,7 @@ export const getAccounts = async (req: Request, res: Response) => {
     try {
         // fetching all the safe accounts from db
         const safeAccounts = await Account.find({});
-        res.status(200).json(safeAccounts)
+        res.status(200).json("safeAccounts")
     } catch (error) {
         console.log(error);
         res.status(500).send("Internal server error")
@@ -39,7 +39,7 @@ export const getAccount = async (req: Request, res: Response) => {
         if (!account) {
             return res.status(404).json({ message: 'Account not found' });
         }
-        return res.status(200).json("account")
+        return res.status(200).json(account)
     } catch (error) {
         res.status(500).send('Internal Server Error during fetch of the account');
 
