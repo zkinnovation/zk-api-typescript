@@ -18,6 +18,7 @@ mongoose.connect(connection_url, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
 } as any);
+
 // API Endpoints
 app.use('/api/account', accountRoutes);
 app.use('/api/txn', transactionRoutes);
