@@ -20,4 +20,4 @@ jobs:
         cache: 'npm'
     - run: npm ci
     - run: npm test
-    - run: pm2 restart zk-l2-backend
+    - run: pm2 restart zk-api-backend-w-actions
