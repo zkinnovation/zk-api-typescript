@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import accountRoutes from "./routes/accountRoutes";
 import transactionRoutes from "./routes/transactionRoutes";
 require('dotenv').config()
+
 //app setup
 const app = express();
 const port = 8001;
