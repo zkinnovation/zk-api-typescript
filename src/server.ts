@@ -6,7 +6,7 @@ import transactionRoutes from "./routes/transactionRoutes";
 
 require('dotenv').config()
 
-//app setup
+//app setup 1
 
 const app = express();
 const port = 8001;
